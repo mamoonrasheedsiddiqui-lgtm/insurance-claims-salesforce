@@ -1,0 +1,48 @@
+<template>
+    <lightning-card title="Claim Summary" icon-name="standard:case">
+        <div class="slds-p-around_medium">
+            <template if:true={claim.data}>
+                <dl class="slds-dl_horizontal">
+                    <dt class="slds-dl_horizontal__label">
+                        <p class="slds-truncate">Claim Number:</p>
+                    </dt>
+                    <dd class="slds-dl_horizontal__detail">
+                        <p class="slds-truncate">{claimNumber}</p>
+                    </dd>
+                    
+                    <dt class="slds-dl_horizontal__label">
+                        <p class="slds-truncate">Amount:</p>
+                    </dt>
+                    <dd class="slds-dl_horizontal__detail">
+                        <lightning-formatted-number 
+                            value={claimAmount} 
+                            format-style="currency" 
+                            currency-code="USD">
+                        </lightning-formatted-number>
+                    </dd>
+                    
+                    <dt class="slds-dl_horizontal__label">
+                        <p class="slds-truncate">Status:</p>
+                    </dt>
+                    <dd class="slds-dl_horizontal__detail">
+                        <lightning-badge 
+                            label={status}
+                            class={isApproved}>
+                        </lightning-badge>
+                    </dd>
+                    
+                    <dt class="slds-dl_horizontal__label">
+                        <p class="slds-truncate">Approval Level:</p>
+                    </dt>
+                    <dd class="slds-dl_horizontal__detail">
+                        <p class="slds-truncate">{approvalLevel}</p>
+                    </dd>
+                </dl>
+            </template>
+            
+            <template if:true={claim.error}>
+                <p class="slds-text-color_error">Error loading claim</p>
+            </template>
+        </div>
+    </lightning-card>
+</template>

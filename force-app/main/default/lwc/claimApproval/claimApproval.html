@@ -1,0 +1,31 @@
+<template>
+    <lightning-card title="Claim Actions" icon-name="standard:approval">
+        <div class="slds-p-around_medium">
+            <div class="slds-grid slds-gutters">
+                <div class="slds-col">
+                    <lightning-button 
+                        variant="brand" 
+                        label="Approve Claim" 
+                        onclick={handleApprove}
+                        disabled={isLoading}
+                        class="slds-m-right_x-small">
+                    </lightning-button>
+                    
+                    <lightning-button 
+                        variant="destructive" 
+                        label="Reject Claim" 
+                        onclick={handleReject}
+                        disabled={isLoading}>
+                    </lightning-button>
+                </div>
+            </div>
+            
+            <template if:true={isLoading}>
+                <lightning-spinner 
+                    alternative-text="Processing..." 
+                    size="small">
+                </lightning-spinner>
+            </template>
+        </div>
+    </lightning-card>
+</template>
