@@ -1,0 +1,91 @@
+/**
+ * Service class for claim fraud detection business logic
+ * 
+ * @description Handles fraud scoring, validation, and integration with external fraud detection systems
+ * @author Development Team
+ * @date 2024-01-15
+ */
+public with sharing class ClaimFraudDetectionService {
+    
+    // Constants from our patterns
+    private static final Integer FRAUD_SCORE_THRESHOLD_HIGH = 80;
+    private static final Integer FRAUD_SCORE_THRESHOLD_MEDIUM = 50;
+    private static final Integer TIMEOUT_MILLISECONDS = 30000;
+    
+    /**
+     * Analyze claims for potential fraud
+     * 
+     * @param claimIds Set of claim IDs to analyze
+     */
+    public static void analyzeClaims(Set<Id> claimIds) {
+        Savepoint sp = Database.setSavepoint();
+        
+        try {
+            // Input validation
+            if (claimIds == null || claimIds.isEmpty()) {
+                throw new ClaimValidationException('Claim IDs cannot be null or empty');
+            }
+            
+            // Query claims
+            List<Claim__c> claims = [
+                SELECT Id, ClaimAmount__c, IncidentDate__c, SubmissionDate__c,
+                       (SELECT Id FROM ClaimLineItems__r)
+                FROM Claim__c
+                WHERE Id IN :claimIds
+            ];
+            
+            // Calculate fraud scores
+            for (Claim__c claim : claims) {
+                Integer fraudScore = 0;
+                
+                // Business Rule 1: High amount
+                if (claim.ClaimAmount__c > 50000) {
+                    fraudScore += 20;
+                }
+                
+                // Business Rule 2: Recent incident
+                if (claim.IncidentDate__c != null && 
+                    claim.SubmissionDate__c != null) {
+                    Integer daysBetween = claim.IncidentDate__c.daysBetween(claim.SubmissionDate__c);
+                    if (daysBetween <= 7) {
+                        fraudScore += 15;
+                    }
+                }
+                
+                // Business Rule 3: Multiple items
+                if (claim.ClaimLineItems__r != null && 
+                    claim.ClaimLineItems__r.size() > 5) {
+                    fraudScore += 10;
+                }
+                
+                // Business Rule 4: Round numbers
+                if (Math.mod(claim.ClaimAmount__c.intValue(), 1000) == 0) {
+                    fraudScore += 25;
+                }
+                
+                claim.FraudScore__c = fraudScore;
+                
+                // Risk classification
+                if (fraudScore >= FRAUD_SCORE_THRESHOLD_HIGH) {
+                    claim.FraudStatus__c = 'High Risk';
+                } else if (fraudScore >= FRAUD_SCORE_THRESHOLD_MEDIUM) {
+                    claim.FraudStatus__c = 'Medium Risk';
+                } else {
+                    claim.FraudStatus__c = 'Low Risk';
+                }
+            }
+            
+            update claims;
+            
+        } catch (ClaimValidationException e) {
+            Database.rollback(sp);
+            System.debug(LoggingLevel.ERROR, 'Validation error: ' + e.getMessage());
+            throw e;
+            
+        } catch (Exception e) {
+            Database.rollback(sp);
+            System.debug(LoggingLevel.ERROR, 'Unexpected error: ' + e.getMessage());
+            throw new ClaimProcessingException('Failed to analyze claims: ' + e.getMessage(), e);
+        }
+    }
+}
